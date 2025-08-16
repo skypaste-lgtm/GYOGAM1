@@ -20,7 +20,7 @@
     border: 1px solid #e8e8e8;
     border-radius: 16px;
     box-shadow: 0 6px 20px rgba(0,0,0,.06);
-    text-align: center;
+    text-align: left;   /* 카드 기본 정렬도 왼쪽 */
   }
   .label { font-size: 14px; color: #666; margin-bottom: 8px; }
   .text {
@@ -28,12 +28,13 @@
     line-height: 1.1;   /* 줄간격 조정 */
     font-weight: 700;
     word-break: keep-all;
+    text-align: left;   /* 문구를 왼쪽 정렬 */
   }
   /* 깜박임 효과 */
-  .blink { animation: blink 2s step-start infinite; } /* 속도를 느리게 (2초) */
+  .blink { animation: blink 2s step-start infinite; }
   @keyframes blink { 50% { visibility: hidden; } }
 
-  .paused { animation-play-state: paused; } /* 일시정지 상태 */
+  .paused { animation-play-state: paused; }
   .meta { margin-top: 12px; font-size: 12px; color: #999; }
   .error { color: #b00020; font-weight: 600; }
 </style>
@@ -76,10 +77,9 @@ function applyData(rows) {
     return;
   }
 
-  const colorCode = A1[0];  // 첫 번째 숫자
-  const textCode  = A1[1];  // 두 번째 숫자
+  const colorCode = A1[0];  
+  const textCode  = A1[1];  
 
-  // 색상 매핑
   let color = "black";
   switch (colorCode) {
     case "1": color = "red"; break;
@@ -89,13 +89,11 @@ function applyData(rows) {
     case "5": color = "purple"; break;
   }
 
-  // 문구 매핑
   let message = "";
   if (textCode === "1") message = B1;
   else if (textCode === "2") message = B2;
   else if (textCode === "3") message = B3;
 
-  // / 를 줄바꿈으로
   message = message.replace(/\//g, "<br>");
 
   $text.innerHTML = message || "(표시할 문구가 없습니다)";
@@ -129,7 +127,7 @@ if (typeof REFRESH_MS === "number" && REFRESH_MS > 0) {
 /* =================== 스페이스바로 깜박임 제어 =================== */
 document.addEventListener("keydown", (e) => {
   if (e.code === "Space") {
-    e.preventDefault(); // 스크롤 방지
+    e.preventDefault();
     $text.classList.toggle("paused");
   }
 });
