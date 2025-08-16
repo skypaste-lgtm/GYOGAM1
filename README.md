@@ -1,113 +1,126 @@
 <업그레이드소식>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <title>Google Sheets 데이터 표시</title>
-  <style>
-    body {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      background-color: #f0f0f0;
-      margin: 0;
-    }
-    .card {
-      background: white;
-      padding: 30px;
-      border-radius: 20px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-      text-align: left;   /* 카드 안 전체 왼쪽 정렬 */
-      width: 500px;
-      max-width: 90%;
-    }
-    .text {
-      font-size: 28px;
-      line-height: 1.2;      /* 줄 간격 줄이기 */
-      font-weight: 700;
-      word-break: keep-all;
-      display: block;
-      text-align: left;      /* 줄바꿈된 행도 왼쪽 정렬 */
-      white-space: pre-line; /* 줄바꿈 반영 */
-    }
-    .blink {
-      animation: blink 1.5s step-start infinite; /* 깜박임 속도 약간 느리게 */
-    }
-    @keyframes blink {
-      50% { visibility: hidden; }
-    }
-    .label {
-      font-size: 20px;
-      margin-top: 15px;
-      font-weight: 500;
-      color: #555;
-    }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>구글 시트 → 깜박이는 문구</title>
+<style>
+  :root { --font: system-ui, AppleSDGothicNeo, "Malgun Gothic", Arial, sans-serif; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    display: grid;
+    place-items: center;
+    font-family: var(--font);
+    background: #fff;
+  }
+  .card {
+    min-width: 280px;
+    max-width: 90vw;
+    padding: 24px 28px;
+    border: 1px solid #e8e8e8;
+    border-radius: 16px;
+    box-shadow: 0 6px 20px rgba(0,0,0,.06);
+    text-align: center;
+  }
+  .label { font-size: 14px; color: #666; margin-bottom: 8px; }
+  .text {
+    font-size: 28px;
+    line-height: 1.3;
+    font-weight: 700;
+    word-break: keep-all;
+    white-space: pre-line; /* 줄바꿈 적용 */
+  }
+  /* 깜박임 효과 */
+  .blink { animation: blink 1s step-start infinite; }
+  @keyframes blink { 50% { visibility: hidden; } }
+
+  .meta { margin-top: 12px; font-size: 12px; color: #999; }
+  .error { color: #b00020; font-weight: 600; }
+</style>
 </head>
 <body>
   <div class="card">
-    <div id="text1"class="text blink">불러오는 중…</div>
-    <div id="label1"class="label">B1 값</div>
-    <div id="text2"class="text blink">불러오는 중…</div>
-    <div id="label2"class="label">B2 값</div>
-    <div id="text3"class="text blink">불러오는 중…</div>
-    <div id="label3"class="label">B3 값</div>
+    <div class="label">시트 값에 따른 표시</div>
+    <div id="text" class="text blink">불러오는 중…</div>
+    <div id="meta" class="meta"></div>
   </div>
 
-  <script>
-    const sheetUrl = "👉 여기에 웹으로 공개한 구글시트 CSV 주소 붙여넣기 👈";
+<script>
+const SHEET_ID   = "16_aHITP-iPWE57OWnv85gw60qTN6Rhfo-41G1_rQpT0"; // 시트 ID
+const SHEET_NAME = "시트1"; // 시트 탭 이름
+const RANGE      = "A1:B3"; // B3까지 포함
+const REFRESH_MS = 5000;    // 5초마다 새로고침
 
-    const $text1 = document.getElementById("text1");
-    const $text2 = document.getElementById("text2");
-    const $text3 = document.getElementById("text3");
+const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(SHEET_ID)}/gviz/tq?` +
+                 `tqx=out:json&sheet=${encodeURIComponent(SHEET_NAME)}&range=${encodeURIComponent(RANGE)}`;
 
-    async function loadData() {
-      try {
-        const res = await fetch(sheetUrl);
-        const data = await res.text();
-        const rows = data.split("\n").map(r => r.split(","));
+const $text = document.getElementById("text");
+const $meta = document.getElementById("meta");
 
-        // B1, B2, B3 값 가져오기 (첫 행이 헤더일 경우 2행부터 시작)
-        let b1 = rows[1][1] || "";
-        let b2 = rows[2][1] || "";
-        let b3 = rows[3][1] || "";
+function parseGviz(text) {
+  const start = text.indexOf("{");
+  const end   = text.lastIndexOf("}");
+  if (start === -1 || end === -1) throw new Error("GViz 응답 파싱 실패");
+  return JSON.parse(text.slice(start, end + 1));
+}
 
-        // / → 줄바꿈 처리
-        b1 = b1.replace(/\//g, "\n");
-        b2 = b2.replace(/\//g, "\n");
-        b3 = b3.replace(/\//g, "\n");
+function applyData(rows) {
+  const A1 = String(rows?.[0]?.c?.[0]?.v ?? ""); // A1 값 문자열
+  const B1 = rows?.[0]?.c?.[1]?.v ?? "";
+  const B2 = rows?.[1]?.c?.[1]?.v ?? "";
+  const B3 = rows?.[2]?.c?.[1]?.v ?? "";
 
-        $text1.textContent = b1;
-        $text2.textContent = b2;
-        $text3.textContent = b3;
+  if (A1.length < 2) {
+    $text.textContent = "(A1 값 형식 오류)";
+    return;
+  }
 
-        // 숫자 값이면 색상 변경
-        if (parseInt(b1) === 4) $text1.style.color = "green";
-        else if (parseInt(b1) === 5) $text1.style.color = "purple";
+  // 첫 번째 숫자 → 색상
+  const colorCode = A1.charAt(0);
+  let color;
+  if (colorCode === "1") color = "red";
+  else if (colorCode === "2") color = "blue";
+  else if (colorCode === "3") color = "black";
+  else if (colorCode === "4") color = "green";
+  else if (colorCode === "5") color = "purple";
+  else color = "black";
 
-        if (parseInt(b2) === 4) $text2.style.color = "green";
-        else if (parseInt(b2) === 5) $text2.style.color = "purple";
+  // 두 번째 숫자 → 표시할 셀
+  const textCode = A1.charAt(1);
+  let message;
+  if (textCode === "1") message = B1;
+  else if (textCode === "2") message = B2;
+  else if (textCode === "3") message = B3;
+  else message = "";
 
-        if (parseInt(b3) === 4) $text3.style.color = "green";
-        else if (parseInt(b3) === 5) $text3.style.color = "purple";
+  // / → 줄바꿈
+  message = message.replace(/\//g, "\n");
 
-      } catch (e) {
-        console.error("데이터 불러오기 오류:", e);
-      }
-    }
+  // 표시
+  $text.style.color = color;
+  $text.textContent = message || "(표시할 문구가 없습니다)";
+  $meta.textContent = `A1=${A1} · ${new Date().toLocaleString()}`;
+}
 
-    // 최초 실행
-    loadData();
+async function loadOnce() {
+  try {
+    $meta.textContent = "불러오는 중…";
+    const res = await fetch(GVIZ_URL, { cache: "no-store" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const raw = await res.text();
+    const json = parseGviz(raw);
+    applyData(json.table.rows);
+  } catch (err) {
+    console.error(err);
+    $text.textContent = "데이터를 불러오지 못했습니다";
+    $text.classList.remove("blink");
+    $text.classList.add("error");
+    $meta.textContent = `${new Date().toLocaleString()}`;
+  }
+}
 
-    // 스페이스바로 깜박임 제어
-    document.addEventListener("keydown", (e) => {
-      if (e.code === "Space") {
-        [$text1, $text2, $text3].forEach($el => {
-          $el.classList.toggle("blink");
-        });
-        e.preventDefault(); // 스크롤 방지
-      }
-    });
-  </script>
+loadOnce();
+if (REFRESH_MS > 0) setInterval(loadOnce, REFRESH_MS);
+</script>
 </body>
 </html>
