@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<업그레이드소식>
 <html lang="ko">
 <head>
 <meta charset="utf-8" />
