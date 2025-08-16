@@ -25,32 +25,17 @@
   .label { font-size: 14px; color: #666; margin-bottom: 8px; }
   .text {
     font-size: 28px;
-    line-height: 1.2;
+    line-height: 1.1;   /* 줄간격 조정 */
     font-weight: 700;
     word-break: keep-all;
-    white-space: pre-line; /* 줄바꿈 적용 */
   }
   /* 깜박임 효과 */
-  .blink { animation: blink 2s step-start infinite; } /* 2초 주기 */
+  .blink { animation: blink 2s step-start infinite; } /* 속도를 느리게 (2초) */
   @keyframes blink { 50% { visibility: hidden; } }
 
+  .paused { animation-play-state: paused; } /* 일시정지 상태 */
   .meta { margin-top: 12px; font-size: 12px; color: #999; }
   .error { color: #b00020; font-weight: 600; }
-
-  /* 버튼 스타일 */
-  .control-btn {
-    margin-top: 16px;
-    padding: 8px 16px;
-    border: none;
-    border-radius: 8px;
-    background: #007bff;
-    color: white;
-    font-size: 14px;
-    cursor: pointer;
-  }
-  .control-btn:hover {
-    background: #0056b3;
-  }
 </style>
 </head>
 <body>
@@ -58,23 +43,20 @@
     <div class="label">시트 값에 따른 표시</div>
     <div id="text" class="text blink">불러오는 중…</div>
     <div id="meta" class="meta"></div>
-    <button id="toggleBlink" class="control-btn">깜박임 정지</button>
   </div>
 
 <script>
-const SHEET_ID   = "16_aHITP-iPWE57OWnv85gw60qTN6Rhfo-41G1_rQpT0"; // 시트 ID
-const SHEET_NAME = "시트1"; 
-const RANGE      = "A1:B3"; 
-const REFRESH_MS = 5000;    
+/* ========================= 설정 ========================= */
+const SHEET_ID   = "16_aHITP-iPWE57OWnv85gw60qTN6Rhfo-41G1_rQpT0"; 
+const SHEET_NAME = "시트1";      
+const RANGE      = "A1:B3";
+const REFRESH_MS = 5000;
 
 const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(SHEET_ID)}/gviz/tq?` +
                  `tqx=out:json&sheet=${encodeURIComponent(SHEET_NAME)}&range=${encodeURIComponent(RANGE)}`;
 
 const $text = document.getElementById("text");
 const $meta = document.getElementById("meta");
-const $toggleBtn = document.getElementById("toggleBlink");
-
-let isBlinking = true; // 현재 깜박임 상태
 
 function parseGviz(text) {
   const start = text.indexOf("{");
@@ -84,44 +66,44 @@ function parseGviz(text) {
 }
 
 function applyData(rows) {
-  const A1 = String(rows?.[0]?.c?.[0]?.v ?? ""); 
+  const A1 = String(rows?.[0]?.c?.[0]?.v ?? "");
   const B1 = rows?.[0]?.c?.[1]?.v ?? "";
   const B2 = rows?.[1]?.c?.[1]?.v ?? "";
   const B3 = rows?.[2]?.c?.[1]?.v ?? "";
 
-  if (A1.length < 2) {
-    $text.textContent = "(A1 값 형식 오류)";
+  if (!A1 || A1.length < 2) {
+    $text.textContent = "(표시할 데이터가 없습니다)";
     return;
   }
 
-  // 첫 번째 숫자 → 색상
-  const colorCode = A1.charAt(0);
-  let color;
-  if (colorCode === "1") color = "red";
-  else if (colorCode === "2") color = "blue";
-  else if (colorCode === "3") color = "black";
-  else if (colorCode === "4") color = "green";
-  else if (colorCode === "5") color = "purple";
-  else color = "black";
+  const colorCode = A1[0];  // 첫 번째 숫자
+  const textCode  = A1[1];  // 두 번째 숫자
 
-  // 두 번째 숫자 → 표시할 셀
-  const textCode = A1.charAt(1);
-  let message;
+  // 색상 매핑
+  let color = "black";
+  switch (colorCode) {
+    case "1": color = "red"; break;
+    case "2": color = "blue"; break;
+    case "3": color = "black"; break;
+    case "4": color = "green"; break;
+    case "5": color = "purple"; break;
+  }
+
+  // 문구 매핑
+  let message = "";
   if (textCode === "1") message = B1;
   else if (textCode === "2") message = B2;
   else if (textCode === "3") message = B3;
-  else message = "";
 
-  // / → 줄바꿈
-  message = message.replace(/\//g, "\n");
+  // / 를 줄바꿈으로
+  message = message.replace(/\//g, "<br>");
 
-  // 표시
+  $text.innerHTML = message || "(표시할 문구가 없습니다)";
   $text.style.color = color;
-  $text.textContent = message || "(표시할 문구가 없습니다)";
+
   $meta.textContent = `A1=${A1} · ${new Date().toLocaleString()}`;
 }
 
-// 데이터 로드
 async function loadOnce() {
   try {
     $meta.textContent = "불러오는 중…";
@@ -138,19 +120,18 @@ async function loadOnce() {
     $meta.textContent = `${new Date().toLocaleString()}`;
   }
 }
-loadOnce();
-if (REFRESH_MS > 0) setInterval(loadOnce, REFRESH_MS);
 
-// 🔘 버튼으로 깜박임 토글
-$toggleBtn.addEventListener("click", () => {
-  if (isBlinking) {
-    $text.classList.remove("blink"); // 깜박임 제거
-    $toggleBtn.textContent = "깜박임 재개";
-  } else {
-    $text.classList.add("blink"); // 깜박임 다시 적용
-    $toggleBtn.textContent = "깜박임 정지";
+loadOnce();
+if (typeof REFRESH_MS === "number" && REFRESH_MS > 0) {
+  setInterval(loadOnce, REFRESH_MS);
+}
+
+/* =================== 스페이스바로 깜박임 제어 =================== */
+document.addEventListener("keydown", (e) => {
+  if (e.code === "Space") {
+    e.preventDefault(); // 스크롤 방지
+    $text.classList.toggle("paused");
   }
-  isBlinking = !isBlinking;
 });
 </script>
 </body>
