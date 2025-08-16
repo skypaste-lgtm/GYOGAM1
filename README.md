@@ -1,4 +1,4 @@
-<업그레이드 소식>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="utf-8" />
@@ -25,17 +25,32 @@
   .label { font-size: 14px; color: #666; margin-bottom: 8px; }
   .text {
     font-size: 28px;
-    line-height: 1.0;
+    line-height: 1.2;
     font-weight: 700;
     word-break: keep-all;
     white-space: pre-line; /* 줄바꿈 적용 */
   }
   /* 깜박임 효과 */
-  .blink { animation: blink 0s step-start infinite; }
+  .blink { animation: blink 2s step-start infinite; } /* 2초 주기 */
   @keyframes blink { 50% { visibility: hidden; } }
 
   .meta { margin-top: 12px; font-size: 12px; color: #999; }
   .error { color: #b00020; font-weight: 600; }
+
+  /* 버튼 스타일 */
+  .control-btn {
+    margin-top: 16px;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 8px;
+    background: #007bff;
+    color: white;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .control-btn:hover {
+    background: #0056b3;
+  }
 </style>
 </head>
 <body>
@@ -43,19 +58,23 @@
     <div class="label">시트 값에 따른 표시</div>
     <div id="text" class="text blink">불러오는 중…</div>
     <div id="meta" class="meta"></div>
+    <button id="toggleBlink" class="control-btn">깜박임 정지</button>
   </div>
 
 <script>
 const SHEET_ID   = "16_aHITP-iPWE57OWnv85gw60qTN6Rhfo-41G1_rQpT0"; // 시트 ID
-const SHEET_NAME = "시트1"; // 시트 탭 이름
-const RANGE      = "A1:B3"; // B3까지 포함
-const REFRESH_MS = 5000;    // 5초마다 새로고침
+const SHEET_NAME = "시트1"; 
+const RANGE      = "A1:B3"; 
+const REFRESH_MS = 5000;    
 
 const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(SHEET_ID)}/gviz/tq?` +
                  `tqx=out:json&sheet=${encodeURIComponent(SHEET_NAME)}&range=${encodeURIComponent(RANGE)}`;
 
 const $text = document.getElementById("text");
 const $meta = document.getElementById("meta");
+const $toggleBtn = document.getElementById("toggleBlink");
+
+let isBlinking = true; // 현재 깜박임 상태
 
 function parseGviz(text) {
   const start = text.indexOf("{");
@@ -65,7 +84,7 @@ function parseGviz(text) {
 }
 
 function applyData(rows) {
-  const A1 = String(rows?.[0]?.c?.[0]?.v ?? ""); // A1 값 문자열
+  const A1 = String(rows?.[0]?.c?.[0]?.v ?? ""); 
   const B1 = rows?.[0]?.c?.[1]?.v ?? "";
   const B2 = rows?.[1]?.c?.[1]?.v ?? "";
   const B3 = rows?.[2]?.c?.[1]?.v ?? "";
@@ -102,6 +121,7 @@ function applyData(rows) {
   $meta.textContent = `A1=${A1} · ${new Date().toLocaleString()}`;
 }
 
+// 데이터 로드
 async function loadOnce() {
   try {
     $meta.textContent = "불러오는 중…";
@@ -118,9 +138,20 @@ async function loadOnce() {
     $meta.textContent = `${new Date().toLocaleString()}`;
   }
 }
-
 loadOnce();
 if (REFRESH_MS > 0) setInterval(loadOnce, REFRESH_MS);
+
+// 🔘 버튼으로 깜박임 토글
+$toggleBtn.addEventListener("click", () => {
+  if (isBlinking) {
+    $text.classList.remove("blink"); // 깜박임 제거
+    $toggleBtn.textContent = "깜박임 재개";
+  } else {
+    $text.classList.add("blink"); // 깜박임 다시 적용
+    $toggleBtn.textContent = "깜박임 정지";
+  }
+  isBlinking = !isBlinking;
+});
 </script>
 </body>
 </html>
