@@ -25,13 +25,13 @@
   .label { font-size: 14px; color: #666; margin-bottom: 8px; }
   .text {
     font-size: 28px;
-    line-height: 1.3;
+    line-height: 1.0;
     font-weight: 700;
     word-break: keep-all;
     white-space: pre-line; /* 줄바꿈 적용 */
   }
   /* 깜박임 효과 */
-  .blink { animation: blink 1s step-start infinite; }
+  .blink { animation: blink 2s step-start infinite; }
   @keyframes blink { 50% { visibility: hidden; } }
 
   .meta { margin-top: 12px; font-size: 12px; color: #999; }
