@@ -20,15 +20,17 @@
     border: 1px solid #e8e8e8;
     border-radius: 16px;
     box-shadow: 0 6px 20px rgba(0,0,0,.06);
-    text-align: left;   /* 카드 기본 정렬도 왼쪽 */
+    text-align: left;   /* 카드 전체 왼쪽 정렬 */
   }
   .label { font-size: 14px; color: #666; margin-bottom: 8px; }
   .text {
     font-size: 28px;
-    line-height: 1.1;   /* 줄간격 조정 */
+    line-height: 1.1;   /* 줄간격 좁게 */
     font-weight: 700;
     word-break: keep-all;
-    text-align: left;   /* 문구를 왼쪽 정렬 */
+    display: block;
+    text-align: left;   /* 여러 줄 모두 왼쪽 정렬 */
+    white-space: pre-line; /* 줄바꿈 보존 */
   }
   /* 깜박임 효과 */
   .blink { animation: blink 2s step-start infinite; }
@@ -94,9 +96,9 @@ function applyData(rows) {
   else if (textCode === "2") message = B2;
   else if (textCode === "3") message = B3;
 
-  message = message.replace(/\//g, "<br>");
+  message = message.replace(/\//g, "\n"); // 줄바꿈을 실제 개행으로 변환
 
-  $text.innerHTML = message || "(표시할 문구가 없습니다)";
+  $text.textContent = message || "(표시할 문구가 없습니다)";
   $text.style.color = color;
 
   $meta.textContent = `A1=${A1} · ${new Date().toLocaleString()}`;
