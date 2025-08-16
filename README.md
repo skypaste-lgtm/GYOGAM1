@@ -5,8 +5,13 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>구글 시트 → 깜박이는 문구</title>
   <style>
-    :root { --font: system-ui, AppleSDGothicNeo, "Malgun Gothic", Arial, sans-serif; }
-    html, body { height: 100%; margin: 0; }
+    :root {
+      --font: system-ui, AppleSDGothicNeo, "Malgun Gothic", Arial, sans-serif;
+    }
+    html, body {
+      height: 100%;
+      margin: 0;
+    }
     body {
       display: grid;
       place-items: center;
@@ -20,94 +25,110 @@
       border: 1px solid #e8e8e8;
       border-radius: 16px;
       box-shadow: 0 6px 20px rgba(0,0,0,.06);
-      text-align: left; /* 카드 전체 왼쪽 정렬 */
+      text-align: left; /* 카드 안 전체를 왼쪽 정렬 */
+    }
+    .label {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 8px;
     }
     .text {
       font-size: 28px;
-      line-height: 1.15;        /* 줄간격 살짝 촘촘하게 */
+      line-height: 1.3;
       font-weight: 700;
       word-break: keep-all;
-      white-space: pre-line;     /* \n 줄바꿈 반영 */
-      text-align: left;          /* 줄마다 왼쪽 정렬 */
+      white-space: pre-line; /* 줄바꿈 유지 */
+      text-align: left;      /* 줄바꿈된 글자도 왼쪽 정렬 */
     }
     /* 깜박임 효과 */
-    .blink { animation: blink 1.2s step-start infinite; }
-    @keyframes blink { 50% { visibility: hidden; } }
-
-    .error { color: #b00020; font-weight: 600; }
+    .blink {
+      animation: blink 1s step-start infinite;
+    }
+    @keyframes blink {
+      50% { visibility: hidden; }
+    }
+    .meta {
+      margin-top: 12px;
+      font-size: 12px;
+      color: #999;
+    }
+    .error {
+      color: #b00020;
+      font-weight: 600;
+    }
   </style>
 </head>
 <body>
   <div class="card">
-    <!-- 깜박이는 문자만 표시 -->
+    <div class="label">시트 값에 따른 표시</div>
     <div id="text" class="text blink">불러오는 중…</div>
+    <div id="meta" class="meta"></div>
   </div>
 
   <script>
-    /* ========================= 설정 =========================
-     * 시트를 "링크가 있는 모든 사용자(보기)"로 공개하세요.
-     * SHEET_NAME은 실제 탭 이름으로 입력하세요.
-     */
-    const SHEET_ID   = "16_aHITP-iPWE57OWnv85gw60qTN6Rhfo-41G1_rQpT0";
+    /* ========================= 설정 ========================= */
+    const SHEET_ID = "16_aHITP-iPWE57OWnv85gw60qTN6Rhfo-41G1_rQpT0";
     const SHEET_NAME = "시트1";
-    const RANGE      = "A1:B3";         // A1, B1~B3까지
-    const REFRESH_MS = 5000;            // 5초마다 갱신
+    const RANGE = "A1:B3";
+    const REFRESH_MS = 5000;
 
     const GVIZ_URL =
       `https://docs.google.com/spreadsheets/d/${encodeURIComponent(SHEET_ID)}/gviz/tq?` +
       `tqx=out:json&sheet=${encodeURIComponent(SHEET_NAME)}&range=${encodeURIComponent(RANGE)}`;
 
     const $text = document.getElementById("text");
-    let isBlinking = true; // 스페이스바로 제어
+    const $meta = document.getElementById("meta");
 
     function parseGviz(text) {
       const start = text.indexOf("{");
-      const end   = text.lastIndexOf("}");
+      const end = text.lastIndexOf("}");
       if (start === -1 || end === -1) throw new Error("GViz 응답 파싱 실패");
       return JSON.parse(text.slice(start, end + 1));
     }
 
-    function getColor(code) {
-      switch (code) {
-        case "1": return "red";     // 빨강
-        case "2": return "blue";    // 파랑
-        case "3": return "black";   // 검정
-        case "4": return "green";   // 녹색
-        case "5": return "purple";  // 보라
-        case "6": return "orange";  // 주황
-        default:  return "black";
-      }
-    }
-
     function applyData(rows) {
-      const A1 = rows?.[0]?.c?.[0]?.v ?? "";
+      const A1 = rows?.[0]?.c?.[0]?.v ?? null;
       const B1 = rows?.[0]?.c?.[1]?.v ?? "";
       const B2 = rows?.[1]?.c?.[1]?.v ?? "";
       const B3 = rows?.[2]?.c?.[1]?.v ?? "";
 
-      const A1str = String(A1 ?? "");
-      const colorCode = A1str.charAt(0); // 앞자리: 색상
-      const textCode  = A1str.charAt(1); // 둘째 자리: 표시셀
+      if (!A1 || String(A1).length < 2) {
+        $text.textContent = "(표시할 문구가 없습니다)";
+        return;
+      }
 
-      // 표시할 문구 선택
+      const colorCode = String(A1)[0]; // 첫 자리
+      const textCode  = String(A1)[1]; // 두 번째 자리
+
       let message = "";
       if (textCode === "1") message = B1;
       else if (textCode === "2") message = B2;
       else if (textCode === "3") message = B3;
 
-      // "/" → 줄바꿈으로 변환 (왼쪽 정렬은 CSS에서 처리)
-      message = String(message ?? "").replace(/\//g, "\n");
+      // 색상 지정
+      let color = "black";
+      switch (colorCode) {
+        case "1": color = "red"; break;
+        case "2": color = "blue"; break;
+        case "3": color = "black"; break;
+        case "4": color = "green"; break;
+        case "5": color = "purple"; break;
+        case "6": color = "orange"; break;
+      }
 
-      // 화면에 적용
-      $text.textContent = message || "(표시할 문구가 없습니다)";
-      $text.style.color = getColor(colorCode);
+      // "/" 기준 줄바꿈 + 왼쪽정렬 유지
+      $text.innerText = (message || "").replace(/\//g, "\n");
+      $text.style.color = color;
+
+      $meta.textContent = `A1=${A1} · ${new Date().toLocaleString()}`;
     }
 
     async function loadOnce() {
       try {
+        $meta.textContent = "불러오는 중…";
         const res = await fetch(GVIZ_URL, { cache: "no-store" });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const raw  = await res.text();
+        const raw = await res.text();
         const json = parseGviz(raw);
         applyData(json.table.rows);
       } catch (err) {
@@ -115,34 +136,28 @@
         $text.textContent = "데이터를 불러오지 못했습니다";
         $text.classList.remove("blink");
         $text.classList.add("error");
+        $meta.textContent = `${new Date().toLocaleString()}`;
       }
     }
 
-    // 최초 로드 & 주기적 갱신
     loadOnce();
-    if (REFRESH_MS > 0) setInterval(loadOnce, REFRESH_MS);
-
-    /* ===== 스페이스바로 깜박임 정지/재개 (브라우저 호환 보강) ===== */
-    function toggleBlink() {
-      isBlinking = !isBlinking;
-      if (isBlinking) {
-        $text.classList.add("blink");
-      } else {
-        $text.classList.remove("blink");
-        // 정지 직후에도 항상 보이도록 보정
-        $text.style.visibility = "visible";
-      }
+    if (REFRESH_MS > 0) {
+      setInterval(loadOnce, REFRESH_MS);
     }
 
-    // window & document 모두 리스닝, code/key 양쪽 체크
-    function onKey(e) {
-      if (e.code === "Space" || e.key === " ") {
-        e.preventDefault(); // 페이지 스크롤 방지
-        toggleBlink();
+    /* ===== 스페이스바로 깜박임 제어 ===== */
+    let blinking = true;
+    document.addEventListener("keydown", (e) => {
+      if (e.code === "Space") {
+        e.preventDefault(); // 스크롤 방지
+        blinking = !blinking;
+        if (blinking) {
+          $text.classList.add("blink");
+        } else {
+          $text.classList.remove("blink");
+        }
       }
-    }
-    window.addEventListener("keydown", onKey);
-    document.addEventListener("keydown", onKey);
+    });
   </script>
 </body>
 </html>
