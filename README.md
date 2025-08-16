@@ -34,7 +34,7 @@
     }
     .text {
       font-size: 28px;
-      line-height: 1.3;
+      line-height: 1.0;
       font-weight: 700;
       word-break: keep-all;
       white-space: pre-line; /* 줄바꿈 처리 */
