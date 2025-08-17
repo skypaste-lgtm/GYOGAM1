@@ -49,6 +49,15 @@
     color: #b00020;
     font-weight: 600;
   }
+
+  /* 깜박임 애니메이션 */
+  @keyframes blink {
+    0%, 50%, 100% { opacity: 1; }
+    25%, 75% { opacity: 0; }
+  }
+  .blink {
+    animation: blink 1s infinite;
+  }
 </style>
 </head>
 <body>
@@ -109,8 +118,12 @@ function applyData(rows) {
     case "6": color = "orange"; break;
   }
 
-  // "/" 기준 줄바꿈
-  $text.innerText = (message || "").replace(/\//g, "\n");
+  // "/" 기준 줄바꿈 → 첫 줄만 깜박이게
+  const lines = (message || "").split("/");
+  if (lines.length > 0) {
+    lines[0] = `<span class="blink">${lines[0]}</span>`;
+  }
+  $text.innerHTML = lines.join("<br>");
   $text.style.color = color;
 
   $meta.textContent = `A1=${A1} · ${new Date().toLocaleString()}`;
